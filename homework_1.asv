@@ -18,20 +18,19 @@ annotation("textbox", [.35 .6 .3 .3], "String", strcat("Varianza: ", num2str(var
 %FINE ESERCIZIO 1
 
 %ESERCIZIO 2
-signalLength = numel(signal(:,1));
-disp(signalLength)
+signalLength = length(signal);
 p = round(signalLength*15/100);
 
-segnaleDegradato = signal(:,1);
-segnaleDegradato(signalLength-p:signalLength, 1)=0;
 
-figure; plot(segnaleDegradato); title("Segnale degradato"); hold on;
 
-valore_medioDegradato = mean(segnaleDegradato);
-energiaDegradato = sum(abs(segnaleDegradato.^2));
+degradatedSignal = signal(:,1);
+degradatedSignal(signalLength-p:)
+for i=1:signalLength
 
-yline(valore_medioDegradato, "--m", "Mean Value", "LineWidth",2);
-annotation("textbox", [.15 .6 .3 .3], "String", strcat("Energia: ", num2str(energiaDegradato)), 'FitBoxToText','on', "BackgroundColor",[1 1 1]);
+end
+degradationArray = ones(signalLength,1);
+degradationArray(p:signalLength,1) = 0;
+
 
 %FINE ESERCIZIO 2
 
