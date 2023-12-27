@@ -40,9 +40,13 @@ main(int argc, char* argv[])
     CsmaHelper csma;
     csma.SetChannelAttribute("DataRate", StringValue("10Mbps"));
     csma.SetChannelAttribute("Delay", StringValue("200ms"));
-    CsmaStarHelper csmaStar(2, csma);
 
-
+    NodeContainer csmaNodes;
+    csmaNodes.Create(3);
+    NodeContainer n0n2 = NodeContainer(csmaNodes.Get(0), csmaNodes.Get(1));
+    NodeContainer n1n2 = NodeContainer(csmaNodes.Get(0), csmaNodes.Get(2));
+    NetDeviceContainer d0d2 = csma.Install(n0n2);
+    NetDeviceContainer d1d2 = csma.Install(n1n2);
     //************* FINE RETE CSMA *************
 
 
@@ -50,10 +54,8 @@ main(int argc, char* argv[])
     //************* RETE WIFI *************
     NodeContainer wifiStaNodes;
     wifiStaNodes.Create(9);
-    // TODO: allNodes.Add(wifiStaNodes); DA FARE ALLA FINE
     NodeContainer wifiApNode;
     wifiApNode.Create(1);
-    //allNodes.Add(wifiApNode); DA FARE ALLA FINE
 
     YansWifiChannelHelper channel = YansWifiChannelHelper::Default();
     YansWifiPhyHelper phy;
@@ -104,86 +106,71 @@ main(int argc, char* argv[])
     secondNet.SetDeviceAttribute("DataRate", StringValue("5Mbps"));
     secondNet.SetChannelAttribute("Delay", StringValue("20ms"));
 
-    PointToPointStarHelper secondNetStar(2, secondNet);
+    NodeContainer secondNetNodes;
+    secondNetNodes.Create(5);
+    NodeContainer n5n6 = NodeContainer(secondNetNodes.Get(0), secondNetNodes.Get(1));
+    NodeContainer n5n7 = NodeContainer(secondNetNodes.Get(0), secondNetNodes.Get(2));
+    NodeContainer n6n8 = NodeContainer(secondNetNodes.Get(1), secondNetNodes.Get(3));
+    NodeContainer n6n9 = NodeContainer(secondNetNodes.Get(1), secondNetNodes.Get(4));
+
+    NetDeviceContainer d5d6 = secondNet.Install(n5n6);
+    NetDeviceContainer d5d7 = secondNet.Install(n5n7);
+    NetDeviceContainer d6d8 = secondNet.Install(n6n8);
+    NetDeviceContainer d6d9 = secondNet.Install(n6n9);
+
+   //************* FINE RETE 2 *************
 
 
-    //TODO: aggiungere a allNodes
-    NodeContainer secondSubnetNodes;
-    secondSubnetNodes.Create(2);
-    NetDeviceContainer secondSubnetDevices;
+   //************* RETE CENTRALE *************
 
-    for (uint32_t i = 0; i < 2; i++){
-        NodeContainer node(secondNetStar.GetSpokeNode(0), secondSubnetNodes.Get(i));
-        secondSubnetDevices.Add(secondNet.Install(node).Get(0));
-    }
-
-    //************* FINE RETE 2 *************
-
-
-
-
-
-    //************* RETE CENTRALE *************
     NodeContainer centralNetNodes;
     centralNetNodes.Create(2);
 
-
+    NodeContainer n3n4 = NodeContainer(centralNetNodes.Get(0), centralNetNodes.Get(1));
+    NodeContainer n2n4 = NodeContainer(centralNetNodes.Get(0), csmaNodes.Get(0));
+    NodeContainer n4n5 = NodeContainer(centralNetNodes.Get(0), secondNetNodes.Get(0));
+    NodeContainer n4n10 = NodeContainer(centralNetNodes.Get(0), wifiApNode);
 
     PointToPointHelper centralNet;
     centralNet.SetDeviceAttribute("DataRate", StringValue("10Mbps"));
     centralNet.SetChannelAttribute("Delay", StringValue("200ms"));
-    NodeContainer tempNode = NodeContainer(centralNetNodes.Get(0), centralNetNodes.Get(1));
+    NodeContainer tempNode = NodeContainer(n3n4);
 
 
-    NetDeviceContainer centralNetDevices;
-    centralNetDevices.Add(centralNet.Install(tempNode).Get(0));
-
+    NetDeviceContainer d3d4 = centralNet.Install(n3n4);
 
     centralNet.SetDeviceAttribute("DataRate", StringValue("100Mbps"));
     centralNet.SetChannelAttribute("Delay", StringValue("20ms"));
-    tempNode = NodeContainer(centralNetNodes.Get(0), secondNetStar.GetHub());
-    centralNetDevices.Add(centralNet.Install(tempNode).Get(0));
 
-    tempNode = NodeContainer(centralNetNodes.Get(0), csmaStar.GetHub());
-    centralNetDevices.Add(centralNet.Install(tempNode).Get(0));
-
-
-    tempNode = NodeContainer(centralNetNodes.Get(0), wifiApNode);
-    centralNetDevices.Add(centralNet.Install(tempNode).Get(0));
-
-
+    NetDeviceContainer d2d4 = centralNet.Install(n2n4);
+    NetDeviceContainer d4d5 = centralNet.Install(n4n5);
+    NetDeviceContainer d4d10 = centralNet.Install(n4n10);
     //************* FINE RETE CENTRALE *************
 
 
 
     //************* POPOLARE CONTAINER CON TUTTI I NODI *************
     NodeContainer allNodes;
-    for (uint32_t i = 0; i < csmaStar.SpokeCount(); i++){
-        allNodes.Add(csmaStar.GetSpokeNode(i));
+    for (uint32_t i = 1; i < csmaNodes.GetN(); i++){
+        allNodes.Add(csmaNodes.Get(i));
     }
-    allNodes.Add(csmaStar.GetHub());
+    allNodes.Add(csmaNodes.Get(0));
 
 
     allNodes.Add(centralNetNodes.Get(0));
     allNodes.Add(centralNetNodes.Get(1));
 
 
-    allNodes.Add(secondNetStar.GetHub());
-    for (uint32_t i = 0; i < secondNetStar.SpokeCount(); i++){
-        allNodes.Add(secondNetStar.GetSpokeNode(i));
+    allNodes.Add(secondNetNodes.Get(0));
+    for (uint32_t i = 1; i < secondNetNodes.GetN(); i++){
+        allNodes.Add(secondNetNodes.Get(i));
     }
-
-    for (uint32_t i = 0; i < 2; i++){
-        allNodes.Add(secondSubnetNodes.Get(i));
-    }
-
 
     allNodes.Add(wifiApNode);
 
     for (uint32_t i = 0; i < 9; i++){
         allNodes.Add(wifiStaNodes.Get(i));
     }
-
     //************* FINE POPOLAZIONE NODI *************
 
 
@@ -196,28 +183,41 @@ main(int argc, char* argv[])
 
     stack.Install(allNodes);
 
-    address.SetBase("10.1.1.0", "255.255.255.248");
+    address.SetBase("10.1.1.0", "255.255.255.252");
+    Ipv4InterfaceContainer i0i2 = address.Assign(d0d2);
 
-    Ipv4InterfaceContainer centralInterface;
-    centralInterface = address.Assign(centralNetDevices);
+    address.SetBase("10.1.1.4", "255.255.255.252");
+    Ipv4InterfaceContainer i1i2 = address.Assign(d1d2);
 
-    address.SetBase("10.1.1.8", "255.255.255.248");
-    csmaStar.AssignIpv4Addresses(address);
+    address.SetBase("10.1.1.8", "255.255.255.252");
+    Ipv4InterfaceContainer i2i4 = address.Assign(d2d4);
+
+    address.SetBase("10.1.1.12", "255.255.255.252");
+    Ipv4InterfaceContainer i3i4 = address.Assign(d3d4);
+
+    address.SetBase("10.1.1.16", "255.255.255.252");
+    Ipv4InterfaceContainer i4i6 = address.Assign(d4d5);
+
+    address.SetBase("10.1.1.20", "255.255.255.252");
+    Ipv4InterfaceContainer i4i10 = address.Assign(d4d10);
+
+    address.SetBase("10.1.1.24", "255.255.255.252");
+    Ipv4InterfaceContainer i5i6 = address.Assign(d5d6);
+
+    address.SetBase("10.1.1.28", "255.255.255.252");
+    Ipv4InterfaceContainer i5i7 = address.Assign(d5d7);
+
+    address.SetBase("10.1.1.32", "255.255.255.252");
+    Ipv4InterfaceContainer i6i8 = address.Assign(d6d8);
+
+    address.SetBase("10.1.1.36", "255.255.255.252");
+    Ipv4InterfaceContainer i6i9 = address.Assign(d6d9);
 
 
-    address.SetBase("10.1.1.24", "255.255.255.248");
-    secondNetStar.AssignIpv4Addresses(address);
 
-
-    address.SetBase("10.1.1.16", "255.255.255.248");
-    Ipv4InterfaceContainer secondSubnetInterface;
-    secondSubnetInterface = address.Assign(secondSubnetDevices);
-
-
-    address.SetBase("10.1.1.32", "255.255.255.240");
-    Ipv4InterfaceContainer wifiInterface = address.Assign(adhocDevices);
-
-
+    address.SetBase("10.1.2.0", "255.255.255.240");
+    address.Assign(apDevices);
+    address.Assign(adhocDevices);
     Ipv4GlobalRoutingHelper::PopulateRoutingTables();
     //************* FINE STRATO DI TRASPORTO *************
 
@@ -229,6 +229,7 @@ main(int argc, char* argv[])
 
 
     //************* NETANIM *************
+    /*
     AnimationInterface anim("HOMEWORKANIMATION.xml"); // Mandatory
     for (uint32_t i = 0; i < wifiStaNodes.GetN(); ++i)
     {
@@ -279,7 +280,7 @@ main(int argc, char* argv[])
         Seconds(0.25));         // Optional
     anim.EnableWifiMacCounters(Seconds(0), Seconds(10)); // Optional
     anim.EnableWifiPhyCounters(Seconds(0), Seconds(10)); // Optional
-
+    */
     //************* FINE NETANIM *************
 
 }
