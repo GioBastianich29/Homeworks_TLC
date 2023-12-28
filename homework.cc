@@ -12,9 +12,14 @@
 #include "ns3/netanim-module.h"
 #include "ns3/log.h"
 using namespace ns3;
+NS_LOG_COMPONENT_DEFINE("Task_1987799");
 int
 main(int argc, char* argv[])
 {
+    Config::SetDefault("ns3::OnOffApplication::PacketSize", UintegerValue(1797));
+
+       // ??? try and stick 15kb/s into the data rate
+    Config::SetDefault("ns3::OnOffApplication::DataRate", StringValue("5Mb/s"));
 
     bool verbose = true;
     //uint32_t nCsma = 3;
@@ -52,10 +57,8 @@ main(int argc, char* argv[])
 
 
     //************* RETE WIFI *************
-    NodeContainer wifiStaNodes;
-    wifiStaNodes.Create(9);
-    NodeContainer wifiApNode;
-    wifiApNode.Create(1);
+    NodeContainer wifiNodes;
+    wifiNodes.Create(10);
 
     YansWifiChannelHelper channel = YansWifiChannelHelper::Default();
     YansWifiPhyHelper phy;
@@ -68,35 +71,27 @@ main(int argc, char* argv[])
     //wifi.SetRemoteStationManager("ns3::ConstantRateWifiManager", "DataMode", StringValue("OfdmRate6Mbps"));
 
     WifiMacHelper mac;
-
     // Ad Hoc Mode
     NetDeviceContainer adhocDevices;
-    mac.SetType("ns3::AdhocWifiMac");
-    adhocDevices = wifi.Install(phy, mac, wifiStaNodes);
-    Ssid ssid = Ssid("1987799");
-    NetDeviceContainer apDevices;
-    mac.SetType("ns3::ApWifiMac", "Ssid", SsidValue(ssid));
-    apDevices = wifi.Install(phy, mac, wifiApNode);
+    adhocDevices = wifi.Install(phy, mac, wifiNodes);
     // Mobility
     MobilityHelper mobility;
     mobility.SetPositionAllocator("ns3::GridPositionAllocator",
         "MinX",
-        DoubleValue(10.0),
+        DoubleValue(0.0),
         "MinY",
-        DoubleValue(10.0),
+        DoubleValue(0.0),
         "DeltaX",
         DoubleValue(5.0),
         "DeltaY",
-        DoubleValue(2.0),
+        DoubleValue(10.0),
         "GridWidth",
-        UintegerValue(5),
+        UintegerValue(3),
         "LayoutType",
         StringValue("RowFirst"));
 
     mobility.SetMobilityModel("ns3::ConstantPositionMobilityModel");
-    mobility.Install(wifiStaNodes);
-    mobility.SetMobilityModel("ns3::ConstantPositionMobilityModel");
-    mobility.Install(wifiApNode);
+    mobility.Install(wifiNodes);
     //************* FINE RETE WIFI *************
 
 
@@ -127,15 +122,13 @@ main(int argc, char* argv[])
     centralNetNodes.Create(2);
 
     NodeContainer n3n4 = NodeContainer(centralNetNodes.Get(0), centralNetNodes.Get(1));
-    NodeContainer n2n4 = NodeContainer(centralNetNodes.Get(0), csmaNodes.Get(0));
+    NodeContainer n2n4 = NodeContainer(csmaNodes.Get(0), centralNetNodes.Get(0));
     NodeContainer n4n5 = NodeContainer(centralNetNodes.Get(0), secondNetNodes.Get(0));
-    NodeContainer n4n10 = NodeContainer(centralNetNodes.Get(0), wifiApNode);
+    NodeContainer n4n10 = NodeContainer(centralNetNodes.Get(0), wifiNodes.Get(0));
 
     PointToPointHelper centralNet;
     centralNet.SetDeviceAttribute("DataRate", StringValue("10Mbps"));
     centralNet.SetChannelAttribute("Delay", StringValue("200ms"));
-    NodeContainer tempNode = NodeContainer(n3n4);
-
 
     NetDeviceContainer d3d4 = centralNet.Install(n3n4);
 
@@ -166,10 +159,8 @@ main(int argc, char* argv[])
         allNodes.Add(secondNetNodes.Get(i));
     }
 
-    allNodes.Add(wifiApNode);
-
-    for (uint32_t i = 0; i < 9; i++){
-        allNodes.Add(wifiStaNodes.Get(i));
+    for (uint32_t i = 0; i < wifiNodes.GetN(); i++){
+        allNodes.Add(wifiNodes.Get(i));
     }
     //************* FINE POPOLAZIONE NODI *************
 
@@ -192,95 +183,96 @@ main(int argc, char* argv[])
     address.SetBase("10.1.1.8", "255.255.255.252");
     Ipv4InterfaceContainer i2i4 = address.Assign(d2d4);
 
-    address.SetBase("10.1.1.12", "255.255.255.252");
+    address.SetBase("10.1.2.0", "255.255.255.252");
     Ipv4InterfaceContainer i3i4 = address.Assign(d3d4);
 
-    address.SetBase("10.1.1.16", "255.255.255.252");
+    address.SetBase("10.1.2.4", "255.255.255.252");
     Ipv4InterfaceContainer i4i6 = address.Assign(d4d5);
 
-    address.SetBase("10.1.1.20", "255.255.255.252");
+    address.SetBase("10.1.2.8", "255.255.255.252");
     Ipv4InterfaceContainer i4i10 = address.Assign(d4d10);
 
-    address.SetBase("10.1.1.24", "255.255.255.252");
+    address.SetBase("10.1.3.0", "255.255.255.252");
     Ipv4InterfaceContainer i5i6 = address.Assign(d5d6);
 
-    address.SetBase("10.1.1.28", "255.255.255.252");
+    address.SetBase("10.1.3.4", "255.255.255.252");
     Ipv4InterfaceContainer i5i7 = address.Assign(d5d7);
 
-    address.SetBase("10.1.1.32", "255.255.255.252");
+    address.SetBase("10.1.4.0", "255.255.255.252");
     Ipv4InterfaceContainer i6i8 = address.Assign(d6d8);
 
-    address.SetBase("10.1.1.36", "255.255.255.252");
+    address.SetBase("10.1.4.8", "255.255.255.252");
     Ipv4InterfaceContainer i6i9 = address.Assign(d6d9);
 
 
 
-    address.SetBase("10.1.2.0", "255.255.255.240");
-    address.Assign(apDevices);
-    address.Assign(adhocDevices);
+    address.SetBase("10.1.5.0", "255.255.255.240");
+    Ipv4InterfaceContainer wifiInterface = address.Assign(adhocDevices);
+
     Ipv4GlobalRoutingHelper::PopulateRoutingTables();
-    //************* FINE STRATO DI TRASPORTO *************
+
+
+
+    //************* ON OFF APPLICATION *************
+    uint16_t port1 = 9;
+    BulkSendHelper burstSource1("ns3::TcpSocketFactory", InetSocketAddress(i0i2.GetAddress(0), port1));
+    ApplicationContainer burstApp1 = burstSource1.Install(wifiNodes.Get(wifiNodes.GetN() - 1));
+    burstSource1.SetAttribute("SendSize", UintegerValue(1752));
+    burstApp1.Start(Seconds(1.16));
+    burstApp1.Stop(Seconds(10.0));
 
 
 
 
 
-
-
-
-    //************* NETANIM *************
     /*
-    AnimationInterface anim("HOMEWORKANIMATION.xml"); // Mandatory
-    for (uint32_t i = 0; i < wifiStaNodes.GetN(); ++i)
-    {
-        anim.UpdateNodeDescription(wifiStaNodes.Get(i), "STA"); // Optional
-        anim.UpdateNodeColor(wifiStaNodes.Get(i), 255, 0, 0);   // Optional
-    }
-    for (uint32_t i = 0; i < wifiApNode.GetN(); ++i)
-    {
-        anim.UpdateNodeDescription(wifiApNode.Get(i), "AP"); // Optional
-        anim.UpdateNodeColor(wifiApNode.Get(i), 0, 255, 0);  // Optional
-    }
+    uint16_t port2 = 10;
+    BulkSendHelper burstSource2("ns3::TcpSocketFactory", InetSocketAddress(i1i2.GetAddress(0), port2));
+    ApplicationContainer burstApp2 = burstSource2.Install(n6n9.Get(1));
+    burstApp2.Start(Seconds(3.38));
+    burstApp2.Stop(Seconds(10.0));
+    burstSource1.SetAttribute("SendSize", UintegerValue(1797));
 
-    anim.UpdateNodeDescription(csmaStar.GetHub(), "CSMA"); // Optional
-    anim.UpdateNodeColor(csmaStar.GetHub(), 0, 0, 255);
 
-    for (uint32_t i = 0; i < csmaStar.SpokeCount(); ++i)
-    {
-        anim.UpdateNodeDescription(csmaStar.GetSpokeNode(i), "CSMA"); // Optional
-        anim.UpdateNodeColor(csmaStar.GetSpokeNode(i), 0, 0, 255);    // Optional
-    }
-
-    anim.UpdateNodeDescription(secondNetStar.GetHub(), "NET2"); // Optional
-    anim.UpdateNodeColor(secondNetStar.GetHub(), 0, 111, 255);
-
-    for (uint32_t i = 0; i < secondNetStar.SpokeCount(); ++i)
-    {
-        anim.UpdateNodeDescription(secondNetStar.GetSpokeNode(i), "NET2"); // Optional
-        anim.UpdateNodeColor(secondNetStar.GetSpokeNode(i), 0, 111, 255);    // Optional
-    }
-
-    for (uint32_t i = 0; i < secondSubnetNodes.GetN(); ++i)
-    {
-        anim.UpdateNodeDescription(secondSubnetNodes.Get(i), "SUBNET2"); // Optional
-        anim.UpdateNodeColor(secondSubnetNodes.Get(i), 0, 111, 255);    // Optional
-    }
-
-    anim.UpdateNodeDescription(centralNetNodes.Get(0), "CENTRALNET"); // Optional
-    anim.UpdateNodeColor(centralNetNodes.Get(0), 123, 0, 255);
-
-    anim.UpdateNodeDescription(centralNetNodes.Get(1), "CENTRALNET"); // Optional
-    anim.UpdateNodeColor(centralNetNodes.Get(1), 123, 0, 255);
-
-    anim.EnablePacketMetadata(); // Optional
-    // anim.EnableQueueCounters(Seconds(0),Seconds(10));
-    anim.EnableIpv4RouteTracking("routingtable-wireless.xml",
-        Seconds(0),
-        Seconds(5),
-        Seconds(0.25));         // Optional
-    anim.EnableWifiMacCounters(Seconds(0), Seconds(10)); // Optional
-    anim.EnableWifiPhyCounters(Seconds(0), Seconds(10)); // Optional
+    uint16_t port3 = 11;
+    BulkSendHelper burstSource3("ns3::TcpSocketFactory", InetSocketAddress(i0i2.GetAddress(0), port3));
+    ApplicationContainer burstApp3 = burstSource3.Install(n5n6.Get(1));
+    burstApp3.Start(Seconds(3.05));
+    burstApp3.Stop(Seconds(10.0));
+    burstSource1.SetAttribute("SendSize", UintegerValue(1120));
     */
-    //************* FINE NETANIM *************
 
+    //************* FINE ON OFF APPLICATION *************
+
+    //************* UDP ECHO APPLICATION *************
+    /*
+    uint16_t port = 12 ; // Porta per l'applicazione UDP
+    UdpEchoServerHelper echoServer(port);
+    ApplicationContainer serverApp = echoServer.Install(n3n4.Get(0)); // Nodo 1 come server
+    serverApp.Start(Seconds(1.0));
+    serverApp.Stop(Seconds(10.0));
+
+    UdpEchoClientHelper echoClient(i3i4.GetAddress(0), 9);
+    echoClient.SetAttribute("MaxPackets", UintegerValue(250));
+    echoClient.SetAttribute("Interval", TimeValue(MilliSeconds(20.0)));
+    echoClient.SetAttribute("PacketSize", UintegerValue(1210));
+
+    ApplicationContainer clientApp = echoClient.Install(allNodes.Get(12)); // Nodo 0 come client
+    clientApp.Start(Seconds(2.0));
+    clientApp.Stop(Seconds(10.0));
+
+    */
+
+    //************* FINE UDP ECHO APPLICATION *************
+
+
+    phy.EnablePcapAll("wifi", wifiNodes.Get(0));
+    centralNet.EnablePcapAll("central", centralNetNodes.Get(0));
+    csma.EnablePcapAll("csma", csmaNodes.Get(0));
+
+    Simulator::Stop(Seconds(15.0));
+    Simulator::Run();
+    Simulator::Stop(Seconds(10));
+    Simulator::Destroy();
+    return 0;
 }
