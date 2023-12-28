@@ -48,8 +48,8 @@ main(int argc, char* argv[])
 
     NodeContainer csmaNodes;
     csmaNodes.Create(3);
-    NodeContainer n0n2 = NodeContainer(csmaNodes.Get(0), csmaNodes.Get(1));
-    NodeContainer n1n2 = NodeContainer(csmaNodes.Get(0), csmaNodes.Get(2));
+    NodeContainer n0n2 = NodeContainer(csmaNodes.Get(1), csmaNodes.Get(0));
+    NodeContainer n1n2 = NodeContainer(csmaNodes.Get(2), csmaNodes.Get(0));
     NetDeviceContainer d0d2 = csma.Install(n0n2);
     NetDeviceContainer d1d2 = csma.Install(n1n2);
     //************* FINE RETE CSMA *************
@@ -180,16 +180,16 @@ main(int argc, char* argv[])
     address.SetBase("10.1.1.4", "255.255.255.252");
     Ipv4InterfaceContainer i1i2 = address.Assign(d1d2);
 
-    address.SetBase("10.1.1.8", "255.255.255.252");
+    address.SetBase("10.1.2.0", "255.255.255.252");
     Ipv4InterfaceContainer i2i4 = address.Assign(d2d4);
 
-    address.SetBase("10.1.2.0", "255.255.255.252");
+    address.SetBase("10.1.2.4", "255.255.255.252");
     Ipv4InterfaceContainer i3i4 = address.Assign(d3d4);
 
-    address.SetBase("10.1.2.4", "255.255.255.252");
+    address.SetBase("10.1.2.8", "255.255.255.252");
     Ipv4InterfaceContainer i4i6 = address.Assign(d4d5);
 
-    address.SetBase("10.1.2.8", "255.255.255.252");
+    address.SetBase("10.1.2.12", "255.255.255.252");
     Ipv4InterfaceContainer i4i10 = address.Assign(d4d10);
 
     address.SetBase("10.1.3.0", "255.255.255.252");
@@ -209,22 +209,60 @@ main(int argc, char* argv[])
     address.SetBase("10.1.5.0", "255.255.255.240");
     Ipv4InterfaceContainer wifiInterface = address.Assign(adhocDevices);
 
-    Ipv4GlobalRoutingHelper::PopulateRoutingTables();
-
 
 
     //************* ON OFF APPLICATION *************
-    uint16_t port1 = 9;
+    uint16_t port1 = 112;
     BulkSendHelper burstSource1("ns3::TcpSocketFactory", InetSocketAddress(i0i2.GetAddress(0), port1));
-    ApplicationContainer burstApp1 = burstSource1.Install(wifiNodes.Get(wifiNodes.GetN() - 1));
-    burstSource1.SetAttribute("SendSize", UintegerValue(1752));
+    ApplicationContainer burstApp1 = burstSource1.Install(allNodes.Get(19));
+    burstSource1.SetAttribute("MaxBytes", UintegerValue(1752));
     burstApp1.Start(Seconds(1.16));
     burstApp1.Stop(Seconds(10.0));
 
+    PacketSinkHelper sink("ns3::TcpSocketFactory", InetSocketAddress(i0i2.GetAddress(0), port1));
+    ApplicationContainer sinkApps = sink.Install(allNodes.Get(0));
+    sinkApps.Start(Seconds(0.0));
+    sinkApps.Stop(Seconds(10.0));
+    uint32_t payloadSize1 = 1752; // Dimensione del payload del pacchetto
+    burstSource1.SetAttribute("SendSize", UintegerValue(payloadSize1));
+
+
+    uint16_t port2 = 113;
+    BulkSendHelper burstSource2("ns3::TcpSocketFactory", InetSocketAddress(i1i2.GetAddress(0), port2));
+    ApplicationContainer burstApp2 = burstSource2.Install(allNodes.Get(9));
+    burstSource2.SetAttribute("MaxBytes", UintegerValue(1797));
+    burstApp2.Start(Seconds(3.38));
+    burstApp2.Stop(Seconds(10.0));
+
+    uint32_t payloadSize2 = 1797; // Dimensione del payload del pacchetto
+    burstSource2.SetAttribute("SendSize", UintegerValue(payloadSize2));
+
+
+    PacketSinkHelper sink2("ns3::TcpSocketFactory", InetSocketAddress(i1i2.GetAddress(0), port2));
+    ApplicationContainer sinkApps2 = sink2.Install(allNodes.Get(1));
+    sinkApps2.Start(Seconds(0.0));
+    sinkApps2.Stop(Seconds(10.0));
+
+
+
+    uint16_t port3 = 114;
+    BulkSendHelper burstSource3("ns3::TcpSocketFactory", InetSocketAddress(i0i2.GetAddress(0), port3));
+    ApplicationContainer burstApp3 = burstSource3.Install(allNodes.Get(6));
+    burstSource3.SetAttribute("MaxBytes", UintegerValue(1120));
+    burstApp3.Start(Seconds(3.05));
+    burstApp3.Stop(Seconds(10.0));
+
+
+    uint32_t payloadSize3 = 1120; // Dimensione del payload del pacchetto
+    burstSource2.SetAttribute("SendSize", UintegerValue(payloadSize3));
 
 
 
 
+    PacketSinkHelper sink3("ns3::TcpSocketFactory", InetSocketAddress(i0i2.GetAddress(0), port3));
+    ApplicationContainer sinkApps3 = sink3.Install(allNodes.Get(0));
+    sinkApps3.Start(Seconds(0.0));
+    sinkApps3.Stop(Seconds(10.0));
     /*
     uint16_t port2 = 10;
     BulkSendHelper burstSource2("ns3::TcpSocketFactory", InetSocketAddress(i1i2.GetAddress(0), port2));
@@ -245,34 +283,55 @@ main(int argc, char* argv[])
     //************* FINE ON OFF APPLICATION *************
 
     //************* UDP ECHO APPLICATION *************
-    /*
-    uint16_t port = 12 ; // Porta per l'applicazione UDP
-    UdpEchoServerHelper echoServer(port);
-    ApplicationContainer serverApp = echoServer.Install(n3n4.Get(0)); // Nodo 1 come server
-    serverApp.Start(Seconds(1.0));
-    serverApp.Stop(Seconds(10.0));
 
-    UdpEchoClientHelper echoClient(i3i4.GetAddress(0), 9);
+    uint16_t portUdp = 12 ; // Porta per l'applicazione UDP
+    UdpEchoServerHelper echoServer(portUdp);
+    ApplicationContainer serverApp = echoServer.Install(n0n2.Get(0)); // Nodo 1 come server
+    serverApp.Start(Seconds(10.0));
+    serverApp.Stop(Seconds(20.0));
+
+    UdpEchoClientHelper echoClient(i0i2.GetAddress(0), 12);
     echoClient.SetAttribute("MaxPackets", UintegerValue(250));
     echoClient.SetAttribute("Interval", TimeValue(MilliSeconds(20.0)));
     echoClient.SetAttribute("PacketSize", UintegerValue(1210));
 
     ApplicationContainer clientApp = echoClient.Install(allNodes.Get(12)); // Nodo 0 come client
-    clientApp.Start(Seconds(2.0));
-    clientApp.Stop(Seconds(10.0));
+    clientApp.Start(Seconds(11.0));
+    clientApp.Stop(Seconds(20.0));
 
-    */
+
+    uint32_t packetSize = 1210;
+    uint8_t buffer[packetSize] = {0};
+
+    std::string data = "Giovanni,Lentini,1987799,Flavio,Ialongo,2000932,Daniele, De Pascali, 1234567, Sandro, Brunetti, 1234567, Edoardo, Martire, 1234567";
+    std::copy(data.begin(), data.end(), buffer);
+
+    echoClient.SetFill(clientApp.Get(0), buffer, packetSize, packetSize);
 
     //************* FINE UDP ECHO APPLICATION *************
 
+    Ipv4GlobalRoutingHelper::PopulateRoutingTables();
+    phy.EnablePcap("wifi", adhocDevices.Get(9), false);
+    centralNet.EnablePcap("central", d2d4.Get(1), false);
+    csma.EnablePcap("csma", d0d2.Get(0), false);
 
-    phy.EnablePcapAll("wifi", wifiNodes.Get(0));
-    centralNet.EnablePcapAll("central", centralNetNodes.Get(0));
-    csma.EnablePcapAll("csma", csmaNodes.Get(0));
+    secondNet.EnablePcap("secondNet", d5d6.Get(1), false);
+    secondNet.EnablePcap("secondSubnet", d6d9.Get(1), false);
 
-    Simulator::Stop(Seconds(15.0));
+
+    Simulator::Stop(Seconds(20.0));
     Simulator::Run();
-    Simulator::Stop(Seconds(10));
+    Simulator::Stop(Seconds(20));
     Simulator::Destroy();
+
+
+    Ptr<PacketSink> sink_1 = DynamicCast<PacketSink>(sinkApps.Get(0));
+    std::cout << "Total Bytes Received (sink1): " << sink_1->GetTotalRx() << std::endl;
+
+    Ptr<PacketSink> sink_2 = DynamicCast<PacketSink>(sinkApps2.Get(0));
+    std::cout << "Total Bytes Received (sink2): " << sink_2->GetTotalRx() << std::endl;
+
+    Ptr<PacketSink> sink_3 = DynamicCast<PacketSink>(sinkApps3.Get(0));
+    std::cout << "Total Bytes Received (sink3): " << sink_3->GetTotalRx() << std::endl;
     return 0;
 }
