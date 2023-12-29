@@ -11,19 +11,15 @@
 #include "ns3/point-to-point-star.h"
 #include "ns3/netanim-module.h"
 #include "ns3/log.h"
+
 using namespace ns3;
 NS_LOG_COMPONENT_DEFINE("Task_1987799");
-int
-main(int argc, char* argv[])
-{
-    Config::SetDefault("ns3::OnOffApplication::PacketSize", UintegerValue(1797));
 
-       // ??? try and stick 15kb/s into the data rate
-    Config::SetDefault("ns3::OnOffApplication::DataRate", StringValue("5Mb/s"));
+int main(int argc, char* argv[]) {
+   
+    //Config::SetDefault("ns3::OnOffApplication::DataRate", StringValue("5Mb/s"));
 
     bool verbose = true;
-    //uint32_t nCsma = 3;
-    //uint32_t nWifi = 9;
     bool tracing = false;
 
     CommandLine cmd(__FILE__);
@@ -95,8 +91,8 @@ main(int argc, char* argv[])
     //************* FINE RETE WIFI *************
 
 
-    //************* RETE 2 *************
 
+    //************* RETE 2 *************
     PointToPointHelper secondNet;
     secondNet.SetDeviceAttribute("DataRate", StringValue("5Mbps"));
     secondNet.SetChannelAttribute("Delay", StringValue("20ms"));
@@ -112,12 +108,11 @@ main(int argc, char* argv[])
     NetDeviceContainer d5d7 = secondNet.Install(n5n7);
     NetDeviceContainer d6d8 = secondNet.Install(n6n8);
     NetDeviceContainer d6d9 = secondNet.Install(n6n9);
-
    //************* FINE RETE 2 *************
 
 
-   //************* RETE CENTRALE *************
 
+   //************* RETE CENTRALE *************
     NodeContainer centralNetNodes;
     centralNetNodes.Create(2);
 
@@ -166,8 +161,6 @@ main(int argc, char* argv[])
 
 
 
-
-
     //************* STRATO DI TRASPORTO *************
     InternetStackHelper stack;
     Ipv4AddressHelper address;
@@ -204,14 +197,13 @@ main(int argc, char* argv[])
     address.SetBase("10.1.4.8", "255.255.255.252");
     Ipv4InterfaceContainer i6i9 = address.Assign(d6d9);
 
-
-
     address.SetBase("10.1.5.0", "255.255.255.240");
     Ipv4InterfaceContainer wifiInterface = address.Assign(adhocDevices);
+    //************* FINE STRATO DI TRASPORTO *************
 
 
-
-    //************* ON OFF APPLICATION *************
+    //************* BULK SENDER APPLICATION *************
+    /*
     uint16_t port1 = 112;
     BulkSendHelper burstSource1("ns3::TcpSocketFactory", InetSocketAddress(i0i2.GetAddress(0), port1));
     ApplicationContainer burstApp1 = burstSource1.Install(allNodes.Get(19));
@@ -263,6 +255,9 @@ main(int argc, char* argv[])
     ApplicationContainer sinkApps3 = sink3.Install(allNodes.Get(0));
     sinkApps3.Start(Seconds(0.0));
     sinkApps3.Stop(Seconds(10.0));
+    */
+
+
     /*
     uint16_t port2 = 10;
     BulkSendHelper burstSource2("ns3::TcpSocketFactory", InetSocketAddress(i1i2.GetAddress(0), port2));
@@ -279,19 +274,72 @@ main(int argc, char* argv[])
     burstApp3.Stop(Seconds(10.0));
     burstSource1.SetAttribute("SendSize", UintegerValue(1120));
     */
+    //************* FINE BULK SENDER ************* 
 
+    //************* ON OFF APPLICATION *************
+    //1
+    uint16_t port1 = 112;
+
+    OnOffHelper onOffHelper1("ns3::TcpSocketFactory", InetSocketAddress(i0i2.GetAddress(0), port1));
+    onOffHelper1.SetAttribute("OnTime", StringValue("ns3::ConstantRandomVariable[Constant=1]"));
+    onOffHelper1.SetAttribute("OffTime", StringValue("ns3::ConstantRandomVariable[Constant=0]"));
+    onOffHelper1.SetAttribute("PacketSize", UintegerValue(1752));
+    
+    ApplicationContainer onOffApp1 = onOffHelper1.Install(allNodes.Get(19));
+    onOffApp1.Start(Seconds(1.16));
+    onOffApp1.Stop(Seconds(20.0));
+
+    PacketSinkHelper sink1("ns3::TcpSocketFactory", InetSocketAddress(i0i2.GetAddress(0), port1));
+    ApplicationContainer sinkApps1 = sink1.Install(allNodes.Get(0));
+    sinkApps1.Start(Seconds(0.0));
+    sinkApps1.Stop(Seconds(20.0));
+
+
+    //2
+    uint16_t port2 = 113;
+
+    OnOffHelper onOffHelper2("ns3::TcpSocketFactory", InetSocketAddress(i1i2.GetAddress(0), port2));
+    onOffHelper2.SetAttribute("OnTime", StringValue("ns3::ConstantRandomVariable[Constant=1]"));
+    onOffHelper2.SetAttribute("OffTime", StringValue("ns3::ConstantRandomVariable[Constant=0]"));
+    onOffHelper2.SetAttribute("PacketSize", UintegerValue(1797));
+    
+    ApplicationContainer onOffApp2 = onOffHelper2.Install(allNodes.Get(9));
+    onOffApp2.Start(Seconds(3.38));
+    onOffApp2.Stop(Seconds(20.0));
+
+    PacketSinkHelper sink2("ns3::TcpSocketFactory", InetSocketAddress(i1i2.GetAddress(0), port2));
+    ApplicationContainer sinkApps2 = sink2.Install(allNodes.Get(1));
+    sinkApps2.Start(Seconds(0.0));
+    sinkApps2.Stop(Seconds(20.0));
+
+
+    //3
+    uint16_t port3 = 114;
+
+    OnOffHelper onOffHelper3("ns3::TcpSocketFactory", InetSocketAddress(i0i2.GetAddress(0), port3));
+    onOffHelper3.SetAttribute("OnTime", StringValue("ns3::ConstantRandomVariable[Constant=1]"));
+    onOffHelper3.SetAttribute("OffTime", StringValue("ns3::ConstantRandomVariable[Constant=0]"));
+    onOffHelper3.SetAttribute("PacketSize", UintegerValue(1120));
+    
+    ApplicationContainer onOffApp3 = onOffHelper3.Install(allNodes.Get(6));
+    onOffApp3.Start(Seconds(3.05));
+    onOffApp3.Stop(Seconds(20.0));
+
+    PacketSinkHelper sink3("ns3::TcpSocketFactory", InetSocketAddress(i0i2.GetAddress(0), port3));
+    ApplicationContainer sinkApps3 = sink3.Install(allNodes.Get(0));
+    sinkApps3.Start(Seconds(0.0));
+    sinkApps3.Stop(Seconds(20.0));
     //************* FINE ON OFF APPLICATION *************
 
-    //************* UDP ECHO APPLICATION *************
 
+
+    //************* UDP ECHO APPLICATION *************
     uint16_t portUdp = 12 ; // Porta per l'applicazione UDP
     UdpEchoServerHelper echoServer(portUdp);
-    //ApplicationContainer serverApp = echoServer.Install(n0n2.Get(0)); // Nodo 1 come server
     ApplicationContainer serverApp = echoServer.Install(n3n4.Get(0));
     serverApp.Start(Seconds(10.0));
     serverApp.Stop(Seconds(20.0));
 
-    //UdpEchoClientHelper echoClient(i0i2.GetAddress(0), 12);
     UdpEchoClientHelper echoClient(i3i4.GetAddress(0), 12);
     echoClient.SetAttribute("MaxPackets", UintegerValue(250));
     echoClient.SetAttribute("Interval", TimeValue(MilliSeconds(20.0)));
@@ -309,17 +357,18 @@ main(int argc, char* argv[])
     std::copy(data.begin(), data.end(), buffer);
 
     echoClient.SetFill(clientApp.Get(0), buffer, packetSize, packetSize);
-
     //************* FINE UDP ECHO APPLICATION *************
 
+
     Ipv4GlobalRoutingHelper::PopulateRoutingTables();
-    /*phy.EnablePcap("wifi", adhocDevices.Get(9), false);
+    if (tracing) {
+    phy.EnablePcap("wifi", adhocDevices.Get(9), false);
     centralNet.EnablePcap("central", d2d4.Get(1), false);
     csma.EnablePcap("csma", d0d2.Get(0), false);
 
     secondNet.EnablePcap("secondNet", d5d6.Get(1), false);
-    secondNet.EnablePcap("secondSubnet", d6d9.Get(1), false);*/
-
+    secondNet.EnablePcap("secondSubnet", d6d9.Get(1), false);
+    }
 
     Simulator::Stop(Seconds(20.0));
     Simulator::Run();
@@ -327,7 +376,7 @@ main(int argc, char* argv[])
     Simulator::Destroy();
 
 
-    Ptr<PacketSink> sink_1 = DynamicCast<PacketSink>(sinkApps.Get(0));
+    Ptr<PacketSink> sink_1 = DynamicCast<PacketSink>(sinkApps1.Get(0));
     std::cout << "Total Bytes Received (sink1): " << sink_1->GetTotalRx() << std::endl;
 
     Ptr<PacketSink> sink_2 = DynamicCast<PacketSink>(sinkApps2.Get(0));
