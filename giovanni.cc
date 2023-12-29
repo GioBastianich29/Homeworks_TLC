@@ -12,6 +12,9 @@
 #include "ns3/netanim-module.h"
 #include "ns3/log.h"
 
+#include "stdio.h"
+#include "string.h"
+
 using namespace ns3;
 NS_LOG_COMPONENT_DEFINE("Task_1987799");
 
@@ -21,6 +24,10 @@ int main(int argc, char* argv[]) {
 
     bool verbose = true;
     bool tracing = false;
+
+    if (argc == 2 && strcmp(argv[1], "true") == 0) {
+        tracing = true;
+    }
 
     CommandLine cmd(__FILE__);
     cmd.AddValue("verbose", "Tell echo applications to log if true", verbose);
@@ -204,6 +211,7 @@ int main(int argc, char* argv[]) {
 
     //************* BULK SENDER APPLICATION *************
     /*
+    //1
     uint16_t port1 = 112;
     BulkSendHelper burstSource1("ns3::TcpSocketFactory", InetSocketAddress(i0i2.GetAddress(0), port1));
     ApplicationContainer burstApp1 = burstSource1.Install(allNodes.Get(19));
@@ -213,12 +221,14 @@ int main(int argc, char* argv[]) {
 
     PacketSinkHelper sink("ns3::TcpSocketFactory", InetSocketAddress(i0i2.GetAddress(0), port1));
     ApplicationContainer sinkApps = sink.Install(allNodes.Get(0));
+
     sinkApps.Start(Seconds(0.0));
     sinkApps.Stop(Seconds(10.0));
     uint32_t payloadSize1 = 1752; // Dimensione del payload del pacchetto
     burstSource1.SetAttribute("SendSize", UintegerValue(payloadSize1));
 
 
+    //2
     uint16_t port2 = 113;
     BulkSendHelper burstSource2("ns3::TcpSocketFactory", InetSocketAddress(i1i2.GetAddress(0), port2));
     ApplicationContainer burstApp2 = burstSource2.Install(allNodes.Get(9));
@@ -229,14 +239,13 @@ int main(int argc, char* argv[]) {
     uint32_t payloadSize2 = 1797; // Dimensione del payload del pacchetto
     burstSource2.SetAttribute("SendSize", UintegerValue(payloadSize2));
 
-
     PacketSinkHelper sink2("ns3::TcpSocketFactory", InetSocketAddress(i1i2.GetAddress(0), port2));
     ApplicationContainer sinkApps2 = sink2.Install(allNodes.Get(1));
     sinkApps2.Start(Seconds(0.0));
     sinkApps2.Stop(Seconds(10.0));
 
 
-
+    //3
     uint16_t port3 = 114;
     BulkSendHelper burstSource3("ns3::TcpSocketFactory", InetSocketAddress(i0i2.GetAddress(0), port3));
     ApplicationContainer burstApp3 = burstSource3.Install(allNodes.Get(6));
@@ -247,9 +256,6 @@ int main(int argc, char* argv[]) {
 
     uint32_t payloadSize3 = 1120; // Dimensione del payload del pacchetto
     burstSource2.SetAttribute("SendSize", UintegerValue(payloadSize3));
-
-
-
 
     PacketSinkHelper sink3("ns3::TcpSocketFactory", InetSocketAddress(i0i2.GetAddress(0), port3));
     ApplicationContainer sinkApps3 = sink3.Install(allNodes.Get(0));
