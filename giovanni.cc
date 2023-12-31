@@ -7,16 +7,14 @@
 #include "ns3/point-to-point-module.h"
 #include "ns3/ssid.h"
 #include "ns3/yans-wifi-helper.h"
-#include "ns3/csma-star-helper.h"
-#include "ns3/point-to-point-star.h"
-#include "ns3/netanim-module.h"
 #include "ns3/log.h"
 
-#include <stdio.h>
 #include <string.h>
 #include <iostream>
 #include <sys/stat.h>
 
+
+//Funzione ausiliaria con lo scopo di capire se esiste o meno una determinata directory
 bool directoryExists(const std::string& folderPath) {
     struct stat info;
     if (stat(folderPath.c_str(), &info) != 0) {
@@ -25,30 +23,49 @@ bool directoryExists(const std::string& folderPath) {
     return (info.st_mode & S_IFDIR) != 0;
 }
 
-
 using namespace ns3;
 NS_LOG_COMPONENT_DEFINE("Task_1987799");
 
 int main(int argc, char* argv[]) {
 
-    bool verbose = true;
+    LogComponentEnable("Task_1987799", LOG_LEVEL_INFO);
+    std::string matricola = "";
     bool tracing = false;
-
-    if (argc == 2 && strcmp(argv[1], "true") == 0) {
-        tracing = true;
-    }
+    bool forceRtsCts = false;
 
     CommandLine cmd(__FILE__);
-    cmd.AddValue("verbose", "Tell echo applications to log if true", verbose);
-    cmd.AddValue("tracing", "Enable pcap tracing", tracing);
-
+    cmd.AddValue("studentId", "Matricola referente", matricola);
+    cmd.AddValue("tracing", "[true/false] Abilitare tracciamento pacchetti ", tracing);
+    cmd.AddValue("enableRtsCts", "[true/false] Forzare RTS/CTS", forceRtsCts);
     cmd.Parse(argc, argv);
 
-    if (verbose)
-    {
-        LogComponentEnable("UdpEchoClientApplication", LOG_LEVEL_INFO);
-        LogComponentEnable("UdpEchoServerApplication", LOG_LEVEL_INFO);
+    if (matricola == "") {
+        NS_LOG_INFO("Parametro studentId obbligatorio mancante\n");
+        return 0; // Esci con codice di errore
     }
+
+    if (forceRtsCts){
+        Config::SetDefault("ns3::WifiRemoteStationManager::RtsCtsThreshold", UintegerValue(100));
+    }  else { 
+        Config::SetDefault("ns3::WifiRemoteStationManager::RtsCtsThreshold", UintegerValue(100));
+    }
+
+
+
+    //************* CREAZIONE NODI *************
+    NodeContainer csmaNodes;
+    csmaNodes.Create(3);
+
+    NodeContainer centralNetNodes;
+    centralNetNodes.Create(2);
+
+    NodeContainer secondNetNodes;
+    secondNetNodes.Create(5);
+
+    NodeContainer wifiNodes;
+    wifiNodes.Create(10);
+    //************* FINE CREAZIONE NODI *************
+
 
 
     //************* RETE CSMA *************
@@ -56,10 +73,8 @@ int main(int argc, char* argv[]) {
     csma.SetChannelAttribute("DataRate", StringValue("10Mbps"));
     csma.SetChannelAttribute("Delay", StringValue("200ms"));
 
-    NodeContainer csmaNodes;
-    csmaNodes.Create(3);
-    NodeContainer n0n2 = NodeContainer(csmaNodes.Get(1), csmaNodes.Get(0));
-    NodeContainer n1n2 = NodeContainer(csmaNodes.Get(2), csmaNodes.Get(0));
+    NodeContainer n0n2 = NodeContainer(csmaNodes.Get(0), csmaNodes.Get(2));
+    NodeContainer n1n2 = NodeContainer(csmaNodes.Get(1), csmaNodes.Get(2));
     NetDeviceContainer d0d2 = csma.Install(n0n2);
     NetDeviceContainer d1d2 = csma.Install(n1n2);
     //************* FINE RETE CSMA *************
@@ -67,16 +82,13 @@ int main(int argc, char* argv[]) {
 
 
     //************* RETE WIFI *************
-    NodeContainer wifiNodes;
-    wifiNodes.Create(10);
-
     YansWifiChannelHelper channel = YansWifiChannelHelper::Default();
     YansWifiPhyHelper phy;
     phy.SetChannel(channel.Create());
 
     WifiHelper wifi;
     wifi.SetStandard(WIFI_STANDARD_80211g);
-    wifi.SetRemoteStationManager("ns3::AarfWifiManager");
+    wifi.SetRemoteStationManager("ns3::AarfWifiManager"); 
 
     WifiMacHelper mac;
     // Ad Hoc Mode
@@ -109,8 +121,7 @@ int main(int argc, char* argv[]) {
     secondNet.SetDeviceAttribute("DataRate", StringValue("5Mbps"));
     secondNet.SetChannelAttribute("Delay", StringValue("20ms"));
 
-    NodeContainer secondNetNodes;
-    secondNetNodes.Create(5);
+
     NodeContainer n5n6 = NodeContainer(secondNetNodes.Get(0), secondNetNodes.Get(1));
     NodeContainer n5n7 = NodeContainer(secondNetNodes.Get(0), secondNetNodes.Get(2));
     NodeContainer n6n8 = NodeContainer(secondNetNodes.Get(1), secondNetNodes.Get(3));
@@ -125,13 +136,10 @@ int main(int argc, char* argv[]) {
 
 
    //************* RETE CENTRALE *************
-    NodeContainer centralNetNodes;
-    centralNetNodes.Create(2);
-
     NodeContainer n3n4 = NodeContainer(centralNetNodes.Get(0), centralNetNodes.Get(1));
-    NodeContainer n2n4 = NodeContainer(csmaNodes.Get(0), centralNetNodes.Get(0));
-    NodeContainer n4n5 = NodeContainer(centralNetNodes.Get(0), secondNetNodes.Get(0));
-    NodeContainer n4n10 = NodeContainer(centralNetNodes.Get(0), wifiNodes.Get(0));
+    NodeContainer n2n4 = NodeContainer(csmaNodes.Get(0), centralNetNodes.Get(1));
+    NodeContainer n4n5 = NodeContainer(centralNetNodes.Get(1), secondNetNodes.Get(0));
+    NodeContainer n4n10 = NodeContainer(centralNetNodes.Get(1), wifiNodes.Get(0));
 
     PointToPointHelper centralNet;
     centralNet.SetDeviceAttribute("DataRate", StringValue("10Mbps"));
@@ -203,15 +211,16 @@ int main(int argc, char* argv[]) {
     address.SetBase("10.1.3.4", "255.255.255.252");
     Ipv4InterfaceContainer i5i7 = address.Assign(d5d7);
 
-    address.SetBase("10.1.4.0", "255.255.255.252");
+    address.SetBase("10.1.3.8", "255.255.255.252");
     Ipv4InterfaceContainer i6i8 = address.Assign(d6d8);
 
-    address.SetBase("10.1.4.8", "255.255.255.252");
+    address.SetBase("10.1.3.12", "255.255.255.252");
     Ipv4InterfaceContainer i6i9 = address.Assign(d6d9);
 
-    address.SetBase("10.1.5.0", "255.255.255.240");
+    address.SetBase("10.1.4.0", "255.255.255.240");
     Ipv4InterfaceContainer wifiInterface = address.Assign(adhocDevices);
     //************* FINE STRATO DI TRASPORTO *************
+
 
 
     //************* ON OFF APPLICATION *************
@@ -290,10 +299,11 @@ int main(int argc, char* argv[]) {
     uint32_t packetSize = 1210;
     uint8_t buffer[packetSize] = {0};
 
-    std::string data = "Giovanni, Lentini, 1987799, Flavio, Ialongo, 2000932, Daniele, De Pascali, 1984462, Sandro, Brunetti, 2089189, Edoardo, Martire, 2021427";
+    std::string data = "Giovanni,Lentini,1987799,Flavio,Ialongo,2000932,Daniele,De Pascali,1984462,Sandro,Brunetti,2089189,Edoardo,Martire,2021427";
     std::copy(data.begin(), data.end(), buffer);
     echoClient.SetFill(clientApp.Get(0), buffer, packetSize, packetSize);
     //************* FINE UDP ECHO APPLICATION *************
+
 
 
     //************* ROUTING TABLE *************
@@ -301,30 +311,75 @@ int main(int argc, char* argv[]) {
     //************* FINE ROUTING TABLE *************
     
 
+
     //************* TRACING *************
-    std::string folderPath = "pcap";
-
-    if (!directoryExists(folderPath)) {
-        // Se la cartella non esiste, crea la directory
-        int status = mkdir(folderPath.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
-        if (status != 0) {
-            std::cerr << "Errore nella creazione della cartella!" << std::endl;
-            return 1;
-        }
-        std::cout << "Cartella creata con successo!" << std::endl;
-    } else {
-        std::cout << "La cartella esiste già." << std::endl;
-    }
-
     if (tracing) {
-        phy.EnablePcap("pcap/wifi", adhocDevices.Get(9), true);
-        centralNet.EnablePcap("pcap/central", d2d4.Get(1), true);
-        csma.EnablePcap("pcap/csma", d0d2.Get(0), true);
+        //questa parte di codice serve a creare una determinata directory qualora non esistesse
+        if (forceRtsCts) {
+             std::string folderPath = "pcap RtsCts";
 
-        secondNet.EnablePcap("pcap/secondNet", d5d6.Get(1), true);
-        secondNet.EnablePcap("pcap/secondSubnet", d6d9.Get(1), true);
+            if (!directoryExists(folderPath)) {
+                // Se la cartella non esiste, crea la directory
+                int status = mkdir(folderPath.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+                if (status != 0) {
+                    std::cerr << "Errore nella creazione della cartella!" << std::endl;
+                    return 1;
+                }
+                std::cout << "Cartella creata con successo!" << std::endl;
+            } else {
+                std::cout << "La cartella esiste già." << std::endl;
+            }
+
+                phy.EnablePcap("task", adhocDevices.Get(0), true);
+                centralNet.EnablePcap("task", d3d4.Get(1), true);
+                centralNet.EnablePcap("task", d2d4.Get(1), true);
+                centralNet.EnablePcap("task", d4d10.Get(0), true);
+                centralNet.EnablePcap("task", d4d5.Get(0), true);
+
+
+                csma.EnablePcap("task", d0d2.Get(1), true);
+                csma.EnablePcap("task", d1d2.Get(1), true);
+
+
+                secondNet.EnablePcap("task", d5d6.Get(0), true);
+                secondNet.EnablePcap("task", d5d7.Get(0), true);
+                secondNet.EnablePcap("task", d6d8.Get(0), true);
+                secondNet.EnablePcap("task", d6d9.Get(0), true);
+
+        } else {
+            std::string folderPath = "pcap";
+
+            if (!directoryExists(folderPath)) {
+                // Se la cartella non esiste, crea la directory
+                int status = mkdir(folderPath.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+                if (status != 0) {
+                    std::cerr << "Errore nella creazione della cartella!" << std::endl;
+                    return 1;
+                }
+                std::cout << "Cartella creata con successo!" << std::endl;
+            } else {
+                std::cout << "La cartella esiste già." << std::endl;
+            }
+
+            phy.EnablePcap("pcap/task", adhocDevices.Get(0), true);
+            centralNet.EnablePcap("pcap/task", d3d4.Get(1), true);
+            centralNet.EnablePcap("pcap/task", d2d4.Get(1), true);
+            centralNet.EnablePcap("pcap/task", d4d10.Get(0), true);
+            centralNet.EnablePcap("pcap/task", d4d5.Get(0), true);
+
+
+            csma.EnablePcap("pcap/task", d0d2.Get(1), true);
+            csma.EnablePcap("pcap/task", d1d2.Get(1), true);
+
+
+            secondNet.EnablePcap("pcap/task", d5d6.Get(0), true);
+            secondNet.EnablePcap("pcap/task", d5d7.Get(0), true);
+            secondNet.EnablePcap("pcap/task", d6d8.Get(0), true);
+            secondNet.EnablePcap("pcap/task", d6d9.Get(0), true);
+        }
     }
     //************* FINE TRACING *************
+
 
 
     Simulator::Stop(Seconds(15.0));
